@@ -200,12 +200,14 @@ func (s *TestSuite) RunTestCase(t *testing.T, tc TestCase, args TestCaseArgs) {
 func (s *TestSuite) CreateTestTx(privs []cryptotypes.PrivKey, accNums []uint64, accSeqs []uint64, chainID string) (authsigning.Tx, error) {
 	// First round: we gather all the signer infos. We use the "set empty
 	// signature" hack to do that.
+	defaultSignMode, err := authsigning.APISignModeToInternal(s.ClientCtx.TxConfig.SignModeHandler().DefaultMode())
+
 	var sigsV2 []signing.SignatureV2
 	for i, priv := range privs {
 		sigV2 := signing.SignatureV2{
 			PubKey: priv.PubKey(),
 			Data: &signing.SingleSignatureData{
-				SignMode:  s.ClientCtx.TxConfig.SignModeHandler().DefaultMode(),
+				SignMode:  defaultSignMode,
 				Signature: nil,
 			},
 			Sequence: accSeqs[i],
@@ -213,7 +215,7 @@ func (s *TestSuite) CreateTestTx(privs []cryptotypes.PrivKey, accNums []uint64, 
 
 		sigsV2 = append(sigsV2, sigV2)
 	}
-	err := s.TxBuilder.SetSignatures(sigsV2...)
+	err = s.TxBuilder.SetSignatures(sigsV2...)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +229,8 @@ func (s *TestSuite) CreateTestTx(privs []cryptotypes.PrivKey, accNums []uint64, 
 			Sequence:      accSeqs[i],
 		}
 		sigV2, err := tx.SignWithPrivKey(
-			s.ClientCtx.TxConfig.SignModeHandler().DefaultMode(), signerData,
+			s.ClientCtx.CmdContext,
+			defaultSignMode, signerData,
 			s.TxBuilder, priv, s.ClientCtx.TxConfig, accSeqs[i])
 		if err != nil {
 			return nil, err

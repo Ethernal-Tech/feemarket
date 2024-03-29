@@ -1,6 +1,9 @@
 package ante
 
 import (
+	"context"
+
+	"cosmossdk.io/core/address"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
@@ -12,12 +15,13 @@ import (
 //
 //go:generate mockery --name AccountKeeper --filename mock_account_keeper.go
 type AccountKeeper interface {
-	GetParams(ctx sdk.Context) (params authtypes.Params)
-	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
-	SetAccount(ctx sdk.Context, acc authtypes.AccountI)
+	GetParams(ctx context.Context) (params authtypes.Params)
+	GetAccount(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
+	SetAccount(ctx context.Context, acc sdk.AccountI)
 	GetModuleAddress(moduleName string) sdk.AccAddress
-	GetModuleAccount(ctx sdk.Context, name string) authtypes.ModuleAccountI
-	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
+	GetModuleAccount(ctx context.Context, name string) sdk.ModuleAccountI
+	NewAccountWithAddress(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
+	AddressCodec() address.Codec
 }
 
 // FeeGrantKeeper defines the expected feegrant keeper.
@@ -40,9 +44,9 @@ type BankKeeper interface {
 //
 //go:generate mockery --name FeeMarketKeeper --filename mock_feemarket_keeper.go
 type FeeMarketKeeper interface {
-	GetState(ctx sdk.Context) (feemarkettypes.State, error)
-	GetMinGasPrices(ctx sdk.Context) (sdk.Coins, error)
-	GetParams(ctx sdk.Context) (feemarkettypes.Params, error)
-	SetState(ctx sdk.Context, state feemarkettypes.State) error
-	SetParams(ctx sdk.Context, params feemarkettypes.Params) error
+	GetState(ctx context.Context) (feemarkettypes.State, error)
+	GetMinGasPrices(ctx context.Context) (sdk.Coins, error)
+	GetParams(ctx context.Context) (feemarkettypes.Params, error)
+	SetState(ctx context.Context, state feemarkettypes.State) error
+	SetParams(ctx context.Context, params feemarkettypes.Params) error
 }

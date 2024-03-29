@@ -5,8 +5,8 @@ import (
 	"math/rand"
 
 	pruningtypes "cosmossdk.io/store/pruning/types"
-	tmdb "github.com/cometbft/cometbft-db"
 	tmrand "github.com/cometbft/cometbft/libs/rand"
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -27,7 +27,7 @@ var (
 	DefaultAppConstructor = func(val network.ValidatorI) servertypes.Application {
 		return app.New(
 			val.GetCtx().Logger,
-			tmdb.NewMemDB(),
+			dbm.NewMemDB(),
 			nil,
 			true,
 			simtestutil.EmptyAppOptions{},

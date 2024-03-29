@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"context"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -10,7 +12,9 @@ import (
 // is disabled, this function will return without updating the fee market.
 // This is executed in EndBlock which allows the next block's base fee to
 // be readily available for wallets to estimate gas prices.
-func (k *Keeper) UpdateFeeMarket(ctx sdk.Context) error {
+func (k *Keeper) UpdateFeeMarket(ctx context.Context) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return err
@@ -36,7 +40,7 @@ func (k *Keeper) UpdateFeeMarket(ctx sdk.Context) error {
 
 	k.Logger(ctx).Info(
 		"updated the fee market",
-		"height", ctx.BlockHeight(),
+		"height", sdkCtx.BlockHeight(),
 		"new_base_fee", newBaseFee,
 		"new_learning_rate", newLR,
 		"average_block_utilization", state.GetAverageUtilization(params),
@@ -49,7 +53,7 @@ func (k *Keeper) UpdateFeeMarket(ctx sdk.Context) error {
 }
 
 // GetBaseFee returns the base fee from the fee market state.
-func (k *Keeper) GetBaseFee(ctx sdk.Context) (math.Int, error) {
+func (k *Keeper) GetBaseFee(ctx context.Context) (math.Int, error) {
 	state, err := k.GetState(ctx)
 	if err != nil {
 		return math.Int{}, err
@@ -59,7 +63,7 @@ func (k *Keeper) GetBaseFee(ctx sdk.Context) (math.Int, error) {
 }
 
 // GetLearningRate returns the learning rate from the fee market state.
-func (k *Keeper) GetLearningRate(ctx sdk.Context) (math.LegacyDec, error) {
+func (k *Keeper) GetLearningRate(ctx context.Context) (math.LegacyDec, error) {
 	state, err := k.GetState(ctx)
 	if err != nil {
 		return math.LegacyDec{}, err
@@ -69,7 +73,7 @@ func (k *Keeper) GetLearningRate(ctx sdk.Context) (math.LegacyDec, error) {
 }
 
 // GetMinGasPrices returns the mininum gas prices as sdk.Coins from the fee market state.
-func (k *Keeper) GetMinGasPrices(ctx sdk.Context) (sdk.Coins, error) {
+func (k *Keeper) GetMinGasPrices(ctx context.Context) (sdk.Coins, error) {
 	baseFee, err := k.GetBaseFee(ctx)
 	if err != nil {
 		return sdk.NewCoins(), err

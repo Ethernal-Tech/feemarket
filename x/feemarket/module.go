@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
 	store "cosmossdk.io/store/types"
@@ -95,8 +93,8 @@ func NewAppModule(cdc codec.Codec, k keeper.Keeper) AppModule {
 }
 
 // EndBlock returns an endblocker for the x/feemarket module.
-func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
-	return am.k.EndBlock(ctx, req)
+func (am AppModule) EndBlock(ctx context.Context) error {
+	return am.k.EndBlock(ctx)
 }
 
 // IsAppModule implements the appmodule.AppModule interface.
@@ -132,13 +130,11 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingCo
 
 // InitGenesis performs the genesis initialization for the x/feemarket module. This method returns
 // no validator set updates. This method panics on any errors.
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) {
 	var gs types.GenesisState
 	cdc.MustUnmarshalJSON(bz, &gs)
 
 	am.k.InitGenesis(ctx, gs)
-
-	return []abci.ValidatorUpdate{}
 }
 
 // ExportGenesis returns the feemarket module's exported genesis state as raw
