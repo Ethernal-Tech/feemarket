@@ -7,7 +7,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/skip-mev/feemarket/x/feemarket/ante"
 	feemarkettypes "github.com/skip-mev/feemarket/x/feemarket/types"
@@ -124,8 +123,9 @@ func (dfd FeeMarketDeductDecorator) DeductFeeAndTip(ctx sdk.Context, sdkTx sdk.T
 		return fmt.Errorf("fee collector module account (%s) has not been set", feemarkettypes.FeeCollectorName)
 	}
 
-	feePayer := feeTx.FeePayer()
-	feeGranter := feeTx.FeeGranter()
+	feePayer := sdk.AccAddress(feeTx.FeePayer())
+	feeGranter := sdk.AccAddress(feeTx.FeeGranter())
+
 	deductFeesFrom := feePayer
 
 	// if feegranter set deduct fee from feegranter account.
@@ -184,7 +184,7 @@ func (dfd FeeMarketDeductDecorator) DeductFeeAndTip(ctx sdk.Context, sdkTx sdk.T
 }
 
 // DeductCoins deducts coins from the given account.  Coins are sent to the feemarket fee collector account.
-func DeductCoins(bankKeeper BankKeeper, ctx sdk.Context, acc authtypes.AccountI, coins sdk.Coins) error {
+func DeductCoins(bankKeeper BankKeeper, ctx sdk.Context, acc sdk.AccountI, coins sdk.Coins) error {
 	if !coins.IsValid() {
 		return errorsmod.Wrapf(sdkerrors.ErrInsufficientFee, "invalid coin amount: %s", coins)
 	}

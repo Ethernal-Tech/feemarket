@@ -201,6 +201,7 @@ func (s *TestSuite) CreateTestTx(privs []cryptotypes.PrivKey, accNums []uint64, 
 	// First round: we gather all the signer infos. We use the "set empty
 	// signature" hack to do that.
 	defaultSignMode, err := authsigning.APISignModeToInternal(s.ClientCtx.TxConfig.SignModeHandler().DefaultMode())
+	s.Require().NoError(err)
 
 	var sigsV2 []signing.SignatureV2
 	for i, priv := range privs {

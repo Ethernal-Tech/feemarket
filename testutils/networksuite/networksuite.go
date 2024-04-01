@@ -12,11 +12,16 @@ import (
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/cosmos/gogoproto/proto"
 
+	appv1alpha1 "cosmossdk.io/api/cosmos/app/v1alpha1"
+	"cosmossdk.io/core/appconfig"
+	"cosmossdk.io/depinject"
+	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	"github.com/skip-mev/chaintestutil/network"
 	"github.com/skip-mev/chaintestutil/sample"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	feemarketmodule "github.com/skip-mev/feemarket/api/feemarket/feemarket/module/v1"
 	"github.com/skip-mev/feemarket/tests/app"
 	feemarkettypes "github.com/skip-mev/feemarket/x/feemarket/types"
 )
@@ -49,8 +54,9 @@ type NetworkTestSuite struct {
 // SetupSuite setups the local network with a genesis state.
 func (nts *NetworkTestSuite) SetupSuite() {
 	var (
-		r   = sample.Rand()
-		cfg = network.NewConfig(DefaultAppConstructor, app.ModuleBasics, chainID)
+		r = sample.Rand()
+		// TODO: check this
+		cfg = network.NewConfig(appConfig())
 	)
 
 	updateGenesisConfigState := func(moduleName string, moduleState proto.Message) {
@@ -70,4 +76,36 @@ func (nts *NetworkTestSuite) SetupSuite() {
 func populateFeeMarket(_ *rand.Rand, feeMarketState feemarkettypes.GenesisState) feemarkettypes.GenesisState {
 	// TODO intercept and populate state randomly if desired
 	return feeMarketState
+}
+
+func appConfig() depinject.Config {
+	return configurator.NewAppConfig(
+		configurator.AuthModule(),
+		configurator.GenutilModule(),
+		configurator.BankModule(),
+		configurator.StakingModule(),
+		configurator.MintModule(),
+		configurator.DistributionModule(),
+		configurator.GovModule(),
+		configurator.ParamsModule(),
+		configurator.SlashingModule(),
+		configurator.FeegrantModule(),
+		configurator.EvidenceModule(),
+		configurator.AuthzModule(),
+		configurator.GroupModule(),
+		configurator.VestingModule(),
+		configurator.NFTModule(),
+		configurator.ConsensusModule(),
+		configurator.TxModule(),
+		FeemarketModule(),
+	)
+}
+
+func FeemarketModule() configurator.ModuleOption {
+	return func(config *configurator.Config) {
+		config.ModuleConfigs[feemarkettypes.ModuleName] = &appv1alpha1.ModuleConfig{
+			Name:   feemarkettypes.ModuleName,
+			Config: appconfig.WrapAny(&feemarketmodule.Module{}),
+		}
+	}
 }

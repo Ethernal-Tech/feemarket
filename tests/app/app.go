@@ -99,7 +99,6 @@ var (
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
-		feegrantmodule.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 		authzmodule.AppModuleBasic{},
@@ -171,6 +170,7 @@ func New(
 			depinject.Supply(
 				// supply the application options
 				appOpts,
+				logger,
 
 				// ADVANCED CONFIGURATION
 

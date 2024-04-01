@@ -1,6 +1,7 @@
 package post_test
 
 import (
+	"context"
 	"math/rand"
 	"testing"
 	"time"
@@ -17,11 +18,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 
 	"cosmossdk.io/x/feegrant"
+	txsign "cosmossdk.io/x/tx/signing"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	authsign "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
@@ -144,7 +146,7 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 			}
 
 			var defaultGenTxGas uint64 = 10
-			tx, err := genTxWithFeeGranter(protoTxCfg, msgs, fee, defaultGenTxGas, s.Ctx.ChainID(), accNums, seqs, feeAcc, privs...)
+			tx, err := genTxWithFeeGranter(s.Ctx, protoTxCfg, msgs, fee, defaultGenTxGas, s.Ctx.ChainID(), accNums, seqs, feeAcc, privs...)
 			require.NoError(t, err)
 			_, err = feePostHandler(s.Ctx, tx, false, true) // tests only feegrant post
 			if tc.valid {
@@ -156,7 +158,7 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 	}
 }
 
-func genTxWithFeeGranter(gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accNums,
+func genTxWithFeeGranter(ctx context.Context, gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, gas uint64, chainID string, accNums,
 	accSeqs []uint64, feeGranter sdk.AccAddress, priv ...cryptotypes.PrivKey,
 ) (sdk.Tx, error) {
 	sigs := make([]signing.SignatureV2, len(priv))
@@ -167,6 +169,10 @@ func genTxWithFeeGranter(gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, 
 	memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
 
 	signMode := gen.SignModeHandler().DefaultMode()
+	internalSignMode, err := authsigning.APISignModeToInternal(signMode)
+	if err != nil {
+		return nil, err
+	}
 
 	// 1st round: set SignatureV2 with empty signatures, to set correct
 	// signer infos.
@@ -174,14 +180,14 @@ func genTxWithFeeGranter(gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, 
 		sigs[i] = signing.SignatureV2{
 			PubKey: p.PubKey(),
 			Data: &signing.SingleSignatureData{
-				SignMode: signMode,
+				SignMode: internalSignMode,
 			},
 			Sequence: accSeqs[i],
 		}
 	}
 
 	tx := gen.NewTxBuilder()
-	err := tx.SetMsgs(msgs...)
+	err = tx.SetMsgs(msgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -196,12 +202,19 @@ func genTxWithFeeGranter(gen client.TxConfig, msgs []sdk.Msg, feeAmt sdk.Coins, 
 
 	// 2nd round: once all signer infos are set, every signer can sign.
 	for i, p := range priv {
-		signerData := authsign.SignerData{
+		// TODO: check everything regarding signing and data
+		signerData := txsign.SignerData{
 			ChainID:       chainID,
 			AccountNumber: accNums[i],
 			Sequence:      accSeqs[i],
 		}
-		signBytes, err := gen.SignModeHandler().GetSignBytes(signMode, signerData, tx.GetTx())
+
+		adaptableTx, ok := tx.GetTx().(authsigning.V2AdaptableTx)
+		if !ok {
+			panic("tx is not authsigning.V2AdaptableTx")
+		}
+
+		signBytes, err := gen.SignModeHandler().GetSignBytes(ctx, signMode, signerData, adaptableTx.GetSigningTxData())
 		if err != nil {
 			panic(err)
 		}
