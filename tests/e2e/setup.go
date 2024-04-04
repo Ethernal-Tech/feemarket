@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"cosmossdk.io/math"
 	rpctypes "github.com/cometbft/cometbft/rpc/core/types"
 	comettypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -26,10 +27,10 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/skip-mev/chaintestutil/sample"
-	interchaintest "github.com/strangelove-ventures/interchaintest/v7"
-	"github.com/strangelove-ventures/interchaintest/v7/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v7/ibc"
-	"github.com/strangelove-ventures/interchaintest/v7/testutil"
+	interchaintest "github.com/strangelove-ventures/interchaintest/v8"
+	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
+	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/strangelove-ventures/interchaintest/v8/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"golang.org/x/sync/errgroup"
@@ -414,8 +415,8 @@ func (s *TestSuite) GetAndFundTestUserWithMnemonic(
 		interchaintest.FaucetAccountKeyName,
 		interchaintest.FaucetAccountKeyName,
 		user.FormattedAddress(),
-		sdk.NewCoins(sdk.NewCoin(chainCfg.Denom, sdk.NewInt(amount))),
-		sdk.NewCoins(sdk.NewCoin(chainCfg.Denom, sdk.NewInt(1000000000000))),
+		sdk.NewCoins(sdk.NewCoin(chainCfg.Denom, math.NewInt(amount))),
+		sdk.NewCoins(sdk.NewCoin(chainCfg.Denom, math.NewInt(1000000000000))),
 		1000000,
 	)
 	s.Require().NoError(err, "failed to get funds from faucet")
@@ -455,7 +456,7 @@ func (s *TestSuite) GetAndFundTestUsers(
 
 // ExecTx executes a cli command on a node, waits a block and queries the Tx to verify it was included on chain.
 func (s *TestSuite) ExecTx(ctx context.Context, chain *cosmos.CosmosChain, keyName string, command ...string) (string, error) {
-	node := chain.FullNodes[0]
+	node := chain.Validators[0]
 
 	resp, err := node.ExecTx(ctx, keyName, command...)
 	s.Require().NoError(err)
@@ -464,7 +465,7 @@ func (s *TestSuite) ExecTx(ctx context.Context, chain *cosmos.CosmosChain, keyNa
 	s.Require().NoError(err)
 	s.WaitForHeight(chain, height+1)
 
-	stdout, stderr, err := chain.FullNodes[0].ExecQuery(ctx, "tx", resp, "--type", "hash")
+	stdout, stderr, err := chain.Validators[0].ExecQuery(ctx, "tx", resp, "--type", "hash")
 	s.Require().NoError(err)
 	s.Require().Nil(stderr)
 

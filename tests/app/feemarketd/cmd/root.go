@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 
+	"cosmossdk.io/client/v2/autocli"
 	"cosmossdk.io/log"
 	confixcmd "cosmossdk.io/tools/confix/cmd"
 	tmcfg "github.com/cometbft/cometbft/config"
@@ -16,6 +17,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/pruning"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
+	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -82,6 +85,15 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	initRootCmd(rootCmd, encodingConfig)
+
+	autoCliopts, err := enrichAutoCliOpts(simApp.AutoCliOpts(), initClientCtx)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := autoCliopts.EnhanceRootCommand(rootCmd); err != nil {
+		panic(err)
+	}
 
 	return rootCmd
 }
@@ -236,8 +248,6 @@ func txCommand() *cobra.Command {
 		authcmd.GetDecodeCommand(),
 	)
 
-	app.ModuleBasics.AddTxCommands(cmd)
-
 	return cmd
 }
 
@@ -298,4 +308,24 @@ func appExport(
 	}
 
 	return testApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)
+}
+
+func enrichAutoCliOpts(autoCliOpts autocli.AppOptions, clientCtx client.Context) (autocli.AppOptions, error) {
+	autoCliOpts.AddressCodec = addresscodec.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix())
+	autoCliOpts.ValidatorAddressCodec = addresscodec.NewBech32Codec(sdk.GetConfig().GetBech32ValidatorAddrPrefix())
+	autoCliOpts.ConsensusAddressCodec = addresscodec.NewBech32Codec(sdk.GetConfig().GetBech32ConsensusAddrPrefix())
+
+	var err error
+	clientCtx, err = config.ReadFromClientConfig(clientCtx)
+	if err != nil {
+		return autocli.AppOptions{}, err
+	}
+
+	autoCliOpts.ClientCtx = clientCtx
+	autoCliOpts.Keyring, err = keyring.NewAutoCLIKeyring(clientCtx.Keyring)
+	if err != nil {
+		return autocli.AppOptions{}, err
+	}
+
+	return autoCliOpts, nil
 }

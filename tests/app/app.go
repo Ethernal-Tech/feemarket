@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"cosmossdk.io/client/v2/autocli"
+	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
 	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/evidence"
@@ -16,8 +18,9 @@ import (
 	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	nftmodule "cosmossdk.io/x/nft/module"
 	"cosmossdk.io/x/upgrade"
+	runtimeservices "github.com/cosmos/cosmos-sdk/runtime/services"
+	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 
-	// upgradeclient "cosmossdk.io/x/upgrade/client" // TODO: temp
 	"cosmossdk.io/log"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 	dbm "github.com/cosmos/cosmos-db"
@@ -92,8 +95,6 @@ var (
 		gov.NewAppModuleBasic(
 			[]govclient.ProposalHandler{
 				paramsclient.ProposalHandler,
-				// upgradeclient.LegacyProposalHandler,
-				// upgradeclient.LegacyCancelProposalHandler,
 			},
 		),
 		params.AppModuleBasic{},
@@ -353,6 +354,27 @@ func (app *TestApp) InterfaceRegistry() codectypes.InterfaceRegistry {
 // TxConfig returns SimApp's TxConfig
 func (app *TestApp) TxConfig() client.TxConfig {
 	return app.txConfig
+}
+
+// AutoCliOpts returns the autocli options for the app.
+func (app *TestApp) AutoCliOpts() autocli.AppOptions {
+	modules := make(map[string]appmodule.AppModule, 0)
+	for _, m := range app.ModuleManager.Modules {
+		if moduleWithName, ok := m.(module.HasName); ok {
+			moduleName := moduleWithName.Name()
+			if appModule, ok := moduleWithName.(appmodule.AppModule); ok {
+				modules[moduleName] = appModule
+			}
+		}
+	}
+
+	return autocli.AppOptions{
+		Modules:               modules,
+		ModuleOptions:         runtimeservices.ExtractAutoCLIOptions(app.ModuleManager.Modules),
+		AddressCodec:          authcodec.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix()),
+		ValidatorAddressCodec: authcodec.NewBech32Codec(sdk.GetConfig().GetBech32ValidatorAddrPrefix()),
+		ConsensusAddressCodec: authcodec.NewBech32Codec(sdk.GetConfig().GetBech32ConsensusAddrPrefix()),
+	}
 }
 
 // GetKey returns the KVStoreKey for the provided store key.

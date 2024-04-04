@@ -4,12 +4,13 @@ import (
 	"context"
 	"math/rand"
 
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	interchaintest "github.com/strangelove-ventures/interchaintest/v7"
-	"github.com/strangelove-ventures/interchaintest/v7/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v7/ibc"
+	interchaintest "github.com/strangelove-ventures/interchaintest/v8"
+	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
+	"github.com/strangelove-ventures/interchaintest/v8/ibc"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -165,7 +166,7 @@ func (s *TestSuite) TestSendTxUpdating() {
 		baseFee := s.QueryBaseFee()
 
 		gas := int64(1000000)
-		minBaseFee := baseFee.MulInt(sdk.NewInt(gas))
+		minBaseFee := baseFee.MulInt(math.NewInt(gas))
 
 		// send with the exact expected fee
 		txResp, err := s.SendCoins(
@@ -174,7 +175,7 @@ func (s *TestSuite) TestSendTxUpdating() {
 			s.user1.KeyName(),
 			s.user1.FormattedAddress(),
 			s.user2.FormattedAddress(),
-			sdk.NewCoins(sdk.NewCoin(cosmosChain.Config().Denom, sdk.NewInt(10000))),
+			sdk.NewCoins(sdk.NewCoin(cosmosChain.Config().Denom, math.NewInt(10000))),
 			minBaseFee,
 			gas,
 		)

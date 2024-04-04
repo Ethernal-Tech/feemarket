@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
-	interchaintest "github.com/strangelove-ventures/interchaintest/v7"
-	"github.com/strangelove-ventures/interchaintest/v7/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v7/ibc"
-	ictestutil "github.com/strangelove-ventures/interchaintest/v7/testutil"
+	interchaintest "github.com/strangelove-ventures/interchaintest/v8"
+	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
+	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	ictestutil "github.com/strangelove-ventures/interchaintest/v8/testutil"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/skip-mev/feemarket/tests/e2e"
@@ -42,7 +42,7 @@ var (
 				feemarkettypes.DefaultDelta,
 				feemarkettypes.DefaultTargetBlockUtilization,
 				feemarkettypes.DefaultMaxBlockUtilization,
-				sdk.NewInt(1000),
+				math.NewInt(1000),
 				feemarkettypes.DefaultMinLearningRate,
 				feemarkettypes.DefaultMaxLearningRate,
 				feemarkettypes.DefaultFeeDenom,
@@ -53,7 +53,7 @@ var (
 			Key: "app_state.feemarket.state",
 			Value: feemarkettypes.NewState(
 				feemarkettypes.DefaultWindow,
-				sdk.NewInt(1000),
+				math.NewInt(1000),
 				feemarkettypes.DefaultMaxLearningRate,
 			),
 		},

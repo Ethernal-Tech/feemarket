@@ -32,7 +32,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
-	// capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types" // TODO: temp
 	consensustypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -58,7 +57,7 @@ var (
 	// so that other modules that want to create or claim capabilities afterwards in InitChain
 	// can do so safely.
 	genesisModuleOrder = []string{
-		/*capabilitytypes.ModuleName,*/ authtypes.ModuleName, banktypes.ModuleName, feemarkettypes.ModuleName,
+		authtypes.ModuleName, banktypes.ModuleName, feemarkettypes.ModuleName,
 		distrtypes.ModuleName, stakingtypes.ModuleName, slashingtypes.ModuleName, govtypes.ModuleName,
 		minttypes.ModuleName, crisistypes.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName, paramstypes.ModuleName, upgradetypes.ModuleName,
@@ -103,7 +102,6 @@ var (
 					// NOTE: capability module's beginblocker must come before any modules using capabilities (e.g. IBC)
 					BeginBlockers: []string{
 						upgradetypes.ModuleName,
-						// capabilitytypes.ModuleName,
 						feemarkettypes.ModuleName,
 						minttypes.ModuleName,
 						distrtypes.ModuleName,
@@ -127,7 +125,6 @@ var (
 						govtypes.ModuleName,
 						feemarkettypes.ModuleName,
 						stakingtypes.ModuleName,
-						// capabilitytypes.ModuleName,
 						authtypes.ModuleName,
 						banktypes.ModuleName,
 						distrtypes.ModuleName,

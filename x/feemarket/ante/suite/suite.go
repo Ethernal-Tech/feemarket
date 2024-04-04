@@ -3,16 +3,26 @@ package suite
 import (
 	"testing"
 
+	"cosmossdk.io/core/address"
+	txsigning "cosmossdk.io/x/tx/signing"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/tx"
+	"github.com/cosmos/cosmos-sdk/codec"
+	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/gogoproto/proto"
 	"github.com/skip-mev/chaintestutil/encoding"
+	"github.com/skip-mev/chaintestutil/sample"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -44,7 +54,7 @@ type TestSuite struct {
 
 // TestAccount represents an account used in the tests in x/auth/ante.
 type TestAccount struct {
-	Account authtypes.AccountI
+	Account sdk.AccountI
 	Priv    cryptotypes.PrivKey
 }
 
@@ -69,7 +79,7 @@ func (s *TestSuite) CreateTestAccounts(numAccs int) []TestAccount {
 func SetupTestSuite(t *testing.T, mock bool) *TestSuite {
 	s := &TestSuite{}
 
-	s.EncCfg = encoding.MakeTestEncodingConfig(app.ModuleBasics.RegisterInterfaces)
+	s.EncCfg = MakeTestEncodingConfig(app.ModuleBasics.RegisterInterfaces)
 	ctx, testKeepers, _ := testkeeper.NewTestSetup(t)
 	s.Ctx = ctx
 
@@ -255,4 +265,60 @@ func NewTestFeeAmount() sdk.Coins {
 // NewTestGasLimit is a test fee gas limit.
 func NewTestGasLimit() uint64 {
 	return 200000
+}
+
+// we must build InterfaceRegistry with proper address and validator codecs
+func MakeTestEncodingConfig(registries ...sample.ExtraRegistries) encoding.TestEncodingConfig {
+	amino := codec.NewLegacyAmino()
+
+	addressCodec := addresscodec.NewBech32Codec(sdk.GetConfig().GetBech32AccountAddrPrefix())
+	validatorAddressCodec := addresscodec.NewBech32Codec(sdk.GetConfig().GetBech32ValidatorAddrPrefix())
+
+	interfaceRegistry, err := ProvideInterfaceRegistry(addressCodec, validatorAddressCodec, registries...)
+	if err != nil {
+		panic(err)
+	}
+
+	cdc := codec.NewProtoCodec(interfaceRegistry)
+	txCfg := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
+
+	std.RegisterLegacyAminoCodec(amino)
+	std.RegisterInterfaces(interfaceRegistry)
+
+	return encoding.TestEncodingConfig{
+		InterfaceRegistry: interfaceRegistry,
+		Codec:             cdc,
+		TxConfig:          txCfg,
+		Amino:             amino,
+	}
+}
+
+func ProvideInterfaceRegistry(addressCodec address.Codec, validatorAddressCodec address.Codec, registries ...sample.ExtraRegistries) (codectypes.InterfaceRegistry, error) {
+	signingOptions := txsigning.Options{
+		AddressCodec:          addressCodec,
+		ValidatorAddressCodec: validatorAddressCodec,
+	}
+
+	interfaceRegistry, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
+		ProtoFiles:     proto.HybridResolver,
+		SigningOptions: signingOptions,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := interfaceRegistry.SigningContext().Validate(); err != nil {
+		return nil, err
+	}
+
+	// always register
+	cryptocodec.RegisterInterfaces(interfaceRegistry)
+	authtypes.RegisterInterfaces(interfaceRegistry)
+
+	// call extra registry functions
+	for _, registry := range registries {
+		registry(interfaceRegistry)
+	}
+
+	return interfaceRegistry, nil
 }

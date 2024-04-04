@@ -202,7 +202,6 @@ func genTxWithFeeGranter(ctx context.Context, gen client.TxConfig, msgs []sdk.Ms
 
 	// 2nd round: once all signer infos are set, every signer can sign.
 	for i, p := range priv {
-		// TODO: check everything regarding signing and data
 		signerData := txsign.SignerData{
 			ChainID:       chainID,
 			AccountNumber: accNums[i],
